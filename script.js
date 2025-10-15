@@ -26,11 +26,6 @@ document.addEventListener('DOMContentLoaded', function() {
         calculateBookingDetails();
     }
 
-    // Event listener untuk perubahan dropdown
-    document.getElementById('room-selector').addEventListener('change', function() {
-        updateRoomDetails(this.value);
-    });
-    
     // Cek apakah ada parameter room di URL
     const urlParams = new URLSearchParams(window.location.search);
     const roomParam = urlParams.get('room');
@@ -42,6 +37,21 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
         // Jika tidak ada, gunakan kamar default
         updateRoomDetails('type1');
+    }
+
+    // Event listener untuk perubahan dropdown kamar
+    document.getElementById('room-selector').addEventListener('change', function() {
+        console.log('Kamar berubah ke:', this.value);
+        updateRoomDetails(this.value);
+    });
+
+    // Event listener untuk perubahan bulan sewa
+    const bookingMonthSelect = document.getElementById('booking-month');
+    if (bookingMonthSelect) {
+        bookingMonthSelect.addEventListener('change', function() {
+            console.log('Bulan berubah ke:', this.value);
+            calculateBookingDetails();
+        });
     }
 
     // Panggil calculateBookingDetails saat pertama kali halaman dimuat
@@ -169,14 +179,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Event listener untuk pemilihan kamar dan bulan
-    const roomSelector = document.getElementById('room-selector');
-    const bookingMonth = document.getElementById('booking-month');
-    
-    if (roomSelector && bookingMonth) {
-        roomSelector.addEventListener('change', calculateBookingDetails);
-        bookingMonth.addEventListener('change', calculateBookingDetails);
-    }
 
     // Fungsi untuk menghitung total harga berdasarkan bulan
     function calculateBookingDetails() {
@@ -184,6 +186,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const bookingMonth = document.getElementById('booking-month');
 
         if (!roomSelector || !bookingMonth) {
+            console.warn('Elemen selector tidak ditemukan');
             return;
         }
 
@@ -199,10 +202,15 @@ document.addEventListener('DOMContentLoaded', function() {
             // Format harga dengan pemisah ribuan
             const priceFormatted = `Rp ${totalPrice.toLocaleString('id-ID')}`;
 
-            // Update tampilan total harga
+            // Update tampilan total harga dengan animasi
             const totalPriceElement = document.getElementById('total-price');
             if (totalPriceElement) {
+                totalPriceElement.style.transition = 'all 0.3s ease';
+                totalPriceElement.style.transform = 'scale(1.1)';
                 totalPriceElement.textContent = priceFormatted;
+                setTimeout(() => {
+                    totalPriceElement.style.transform = 'scale(1)';
+                }, 300);
             }
 
             // Perbarui tampilan total harga di elemen lain jika ada
@@ -237,7 +245,9 @@ document.addEventListener('DOMContentLoaded', function() {
             // Simpan data booking ke localStorage
             localStorage.setItem('bookingData', JSON.stringify(bookingData));
 
-            console.log(`Total harga dihitung: ${priceFormatted} untuk ${selectedMonths} bulan`);
+            console.log(`✓ Total harga: ${priceFormatted} untuk ${selectedMonths} bulan (${room.name})`);
+        } else {
+            console.warn('Data tidak lengkap:', { room, selectedMonths });
         }
     }
     
@@ -245,10 +255,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // Fungsi untuk tombol PESAN SEKARANG
     const btnBookNow = document.getElementById('btn-book-now');
     if (btnBookNow) {
-        btnBookNow.addEventListener('click', function() {
+        btnBookNow.addEventListener('click', function(e) {
+            e.preventDefault();
+
             const selectedRoomKey = document.getElementById('room-selector').value;
             const selectedMonths = parseInt(document.getElementById('booking-month').value);
             const room = roomData[selectedRoomKey];
+
+            console.log('Tombol PESAN SEKARANG diklik');
+            console.log('Data:', { selectedRoomKey, selectedMonths, room });
 
             if (!selectedMonths || !room) {
                 showNotification('Silakan pilih tipe kamar dan durasi sewa');
@@ -266,11 +281,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            console.log("Mengarahkan ke halaman pembayaran dengan data:", bookingData);
+            console.log("✓ Mengarahkan ke halaman pembayaran dengan data:", bookingData);
 
-            // Arahkan langsung ke halaman pembayaran
-            window.location.href = 'pembayaran.html';
+            // Tambahkan delay kecil untuk memastikan data tersimpan
+            setTimeout(() => {
+                window.location.href = 'pembayaran.html';
+            }, 100);
         });
+    } else {
+        console.error('Tombol btn-book-now tidak ditemukan!');
     }
 
     // ... (kode untuk tombol Tulis Ulasan tetap sama) ...
