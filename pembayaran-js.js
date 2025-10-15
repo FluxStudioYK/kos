@@ -11,18 +11,22 @@ document.addEventListener('DOMContentLoaded', function() {
             if (roomTitle && bookingData.roomName) {
                 roomTitle.textContent = bookingData.roomName;
             }
-            
+
             // Update harga kamar jika elemen ada
             const priceValue = document.querySelector('.price-value');
             if (priceValue && bookingData.priceFormatted) {
                 priceValue.textContent = bookingData.priceFormatted;
             }
-            
-            // Tambahkan informasi durasi menginap jika ada
+
+            // Tambahkan informasi durasi menginap
             const pricePeriod = document.querySelector('.price-period');
-            if (pricePeriod && bookingData.duration) {
-                pricePeriod.textContent = `untuk ${bookingData.duration} hari`;
+            if (pricePeriod && bookingData.durationMonths) {
+                pricePeriod.textContent = `untuk ${bookingData.durationMonths} bulan`;
             }
+
+            console.log('Data booking berhasil dimuat:', bookingData);
+        } else {
+            console.warn('Data booking tidak ditemukan di localStorage');
         }
     } catch (error) {
         console.error('Error saat memperbarui informasi kamar:', error);
