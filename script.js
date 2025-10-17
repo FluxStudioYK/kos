@@ -15,13 +15,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const heroSection = document.getElementById('hero');
         heroSection.style.backgroundImage = `url(${room.image})`;
 
-        // Simpan data kamar yang dipilih ke localStorage
-        localStorage.setItem('selectedRoom', JSON.stringify({
-            type: roomType,
-            name: room.name,
-            price: room.price
-        }));
-
         // Hitung ulang total harga setelah update kamar
         calculateBookingDetails();
     }
@@ -58,84 +51,6 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
         calculateBookingDetails();
     }, 100);
-    
-    // Cek apakah kamar ini sudah disimpan sebelumnya
-    const savedRooms = JSON.parse(localStorage.getItem('savedRooms')) || [];
-    const selectedRoom = JSON.parse(localStorage.getItem('selectedRoom'));
-    
-    if (selectedRoom && savedRooms.some(room => room.type === selectedRoom.type)) {
-        // Jika kamar sudah disimpan, update tampilan tombol simpan
-        const saveButton = document.querySelector('.btn-save');
-        const icon = saveButton.querySelector('i');
-        icon.classList.remove('far');
-        icon.classList.add('fas');
-        saveButton.style.backgroundColor = '#FFD448';
-        saveButton.style.color = '#303030';
-    }
-
-    // Fungsi untuk tombol Simpan
-    document.querySelector('.btn-save').addEventListener('click', function() {
-        const icon = this.querySelector('i');
-        const selectedRoom = JSON.parse(localStorage.getItem('selectedRoom'));
-        
-        // Dapatkan daftar kamar yang disimpan atau buat array kosong jika belum ada
-        let savedRooms = JSON.parse(localStorage.getItem('savedRooms')) || [];
-        
-        if (icon.classList.contains('far')) {
-            // Simpan kamar
-            icon.classList.remove('far');
-            icon.classList.add('fas');
-            this.style.backgroundColor = '#FFD448';
-            this.style.color = '#303030';
-            
-            // Tambahkan kamar ke daftar yang disimpan jika belum ada
-            if (selectedRoom && !savedRooms.some(room => room.type === selectedRoom.type)) {
-                savedRooms.push(selectedRoom);
-                localStorage.setItem('savedRooms', JSON.stringify(savedRooms));
-                
-                // Tampilkan notifikasi
-                showNotification('Kamar berhasil disimpan!');
-            }
-        } else {
-            // Batalkan simpan
-            icon.classList.remove('fas');
-            icon.classList.add('far');
-            this.style.backgroundColor = 'transparent';
-            this.style.color = '#ffffff';
-            
-            // Hapus kamar dari daftar yang disimpan
-            if (selectedRoom) {
-                savedRooms = savedRooms.filter(room => room.type !== selectedRoom.type);
-                localStorage.setItem('savedRooms', JSON.stringify(savedRooms));
-                
-                // Tampilkan notifikasi
-                showNotification('Kamar dihapus dari daftar simpan');
-            }
-        }
-    });
-
-    // Fungsi untuk tombol Bagikan
-    document.querySelector('.btn-share').addEventListener('click', function() {
-        const selectedRoom = JSON.parse(localStorage.getItem('selectedRoom'));
-        const shareTitle = 'Kost BaLy - ' + document.getElementById('room-type').textContent;
-        const shareText = `Lihat kamar ${selectedRoom ? selectedRoom.name : ''} di Kost BaLy dengan harga ${selectedRoom ? selectedRoom.price : ''} per bulan`;
-        const shareUrl = window.location.href + (selectedRoom ? `?room=${selectedRoom.type}` : '');
-        
-        if (navigator.share) {
-            navigator.share({
-                title: shareTitle,
-                text: shareText,
-                url: shareUrl
-            }).then(() => {
-                showNotification('Berhasil membagikan!');
-            }).catch(err => {
-                console.error('Error sharing:', err);
-                copyToClipboard(shareUrl);
-            });
-        } else {
-            copyToClipboard(shareUrl);
-        }
-    });
     
     // Fungsi helper untuk menampilkan notifikasi
     function showNotification(message) {
@@ -231,20 +146,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 roomPriceElement.textContent = room.price;
             }
 
-            // Buat data booking
-            const bookingData = {
-                roomType: selectedRoomKey,
-                roomName: room.name,
-                roomPrice: room.price,
-                priceValue: priceValue,
-                durationMonths: selectedMonths,
-                totalPrice: totalPrice,
-                priceFormatted: priceFormatted
-            };
-
-            // Simpan data booking ke localStorage
-            localStorage.setItem('bookingData', JSON.stringify(bookingData));
-
             console.log(`✓ Total harga: ${priceFormatted} untuk ${selectedMonths} bulan (${room.name})`);
         } else {
             console.warn('Data tidak lengkap:', { room, selectedMonths });
@@ -281,23 +182,50 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            // Hitung ulang detail booking untuk memastikan data fresh
-            calculateBookingDetails();
+            // Hitung data booking
+            const priceValue = room.priceValue || parseInt(room.price.replace(/\D/g, ''));
+            const totalPrice = priceValue * selectedMonths;
+            const priceFormatted = `Rp ${totalPrice.toLocaleString('id-ID')}`;
 
-            // Ambil data booking dari localStorage
-            const bookingData = JSON.parse(localStorage.getItem('bookingData'));
+            const bookingData = {
+                user_id: session.user.id,
+                room_type: selectedRoomKey,
+                room_name: room.name,
+                room_price: room.price,
+                price_value: priceValue,
+                duration_months: selectedMonths,
+                total_price: totalPrice,
+                price_formatted: priceFormatted,
+                status: 'pending'
+            };
 
-            if (!bookingData) {
+            console.log("✓ Menyimpan booking ke Supabase:", bookingData);
+
+            // Simpan ke Supabase
+            try {
+                const { data, error } = await window.supabase
+                    .from('bookings')
+                    .insert([bookingData])
+                    .select()
+                    .single();
+
+                if (error) {
+                    console.error('Error saving booking:', error);
+                    showNotification('Gagal menyimpan booking. Silakan coba lagi.');
+                    return;
+                }
+
+                console.log("✓ Booking berhasil disimpan:", data);
+                showNotification('Booking berhasil! Mengarahkan ke pembayaran...');
+
+                // Arahkan ke halaman pembayaran dengan ID booking
+                setTimeout(() => {
+                    window.location.href = `pembayaran.html?booking_id=${data.id}`;
+                }, 1000);
+            } catch (err) {
+                console.error('Unexpected error:', err);
                 showNotification('Terjadi kesalahan. Silakan coba lagi.');
-                return;
             }
-
-            console.log("✓ Mengarahkan ke halaman pembayaran dengan data:", bookingData);
-
-            // Tambahkan delay kecil untuk memastikan data tersimpan
-            setTimeout(() => {
-                window.location.href = 'pembayaran.html';
-            }, 100);
         });
     } else {
         console.error('Tombol btn-book-now tidak ditemukan!');

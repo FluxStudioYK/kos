@@ -1,41 +1,58 @@
 // Tunggu hingga seluruh konten HTML dimuat
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     try {
-        // Ambil data booking dari localStorage
-        const bookingData = JSON.parse(localStorage.getItem('bookingData') || '{}');
-        
-        // Update informasi kamar dan harga jika data tersedia
-        if (bookingData && Object.keys(bookingData).length > 0) {
-            // Update judul kamar jika elemen ada
-            const roomTitle = document.querySelector('.room-title h1');
-            if (roomTitle && bookingData.roomName) {
-                roomTitle.textContent = bookingData.roomName;
-            }
+        // Ambil booking_id dari URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const bookingId = urlParams.get('booking_id');
 
-            // Update harga kamar jika elemen ada
-            const priceValue = document.querySelector('.price-value');
-            if (priceValue && bookingData.priceFormatted) {
-                priceValue.textContent = bookingData.priceFormatted;
-            }
-
-            // Tambahkan informasi durasi menginap
-            const pricePeriod = document.querySelector('.price-period');
-            if (pricePeriod && bookingData.durationMonths) {
-                pricePeriod.textContent = `untuk ${bookingData.durationMonths} bulan`;
-            }
-
-            console.log('Data booking berhasil dimuat:', bookingData);
-        } else {
-            console.warn('Data booking tidak ditemukan di localStorage');
+        if (!bookingId) {
+            console.warn('Booking ID tidak ditemukan di URL');
+            alert('Data booking tidak ditemukan. Silakan ulangi pemesanan.');
+            window.location.href = 'index.html';
+            return;
         }
+
+        // Ambil data booking dari Supabase
+        const { data: bookingData, error } = await window.supabase
+            .from('bookings')
+            .select('*')
+            .eq('id', bookingId)
+            .single();
+
+        if (error) {
+            console.error('Error fetching booking:', error);
+            alert('Gagal memuat data booking. Silakan coba lagi.');
+            window.location.href = 'index.html';
+            return;
+        }
+
+        if (!bookingData) {
+            console.warn('Data booking tidak ditemukan');
+            alert('Data booking tidak ditemukan. Silakan ulangi pemesanan.');
+            window.location.href = 'index.html';
+            return;
+        }
+
+        console.log('Data booking berhasil dimuat dari Supabase:', bookingData);
+
+        // Update informasi kamar dan harga
+        const roomTitle = document.querySelector('.room-title h1');
+        if (roomTitle) {
+            roomTitle.textContent = bookingData.room_name;
+        }
+
+        const priceValue = document.querySelector('.price-value');
+        if (priceValue) {
+            priceValue.textContent = bookingData.price_formatted;
+        }
+
+        const pricePeriod = document.querySelector('.price-period');
+        if (pricePeriod) {
+            pricePeriod.textContent = `untuk ${bookingData.duration_months} bulan`;
+        }
+
     } catch (error) {
         console.error('Error saat memperbarui informasi kamar:', error);
+        alert('Terjadi kesalahan. Silakan coba lagi.');
     }
-
-        // Kode tombol simpan dinonaktifkan karena elemen tidak ada di halaman
-    // Kode ini akan diaktifkan kembali jika tombol simpan ditambahkan ke halaman
-
-    // Kode tombol bagikan dinonaktifkan karena elemen tidak ada di halaman
-    // Kode ini akan diaktifkan kembali jika tombol bagikan ditambahkan ke halaman
-
 });
