@@ -12,7 +12,13 @@
 <!-- Navbar -->
 <nav class="navbar">
 <div class="logo">Kost BaLy</div>
-
+<div class="nav-actions">
+  <button id="login-button" class="btn-login">Login</button>
+  <div id="user-profile" style="display: none; align-items: center; gap: 10px;">
+    <span id="user-name" style="color: white;"></span>
+    <button id="logout-button" class="btn-logout">Logout</button>
+  </div>
+</div>
 </nav>
 
 <!-- Hero Section with Room Image -->
@@ -238,7 +244,15 @@ Pelayanan yang baik dan kamar yang nyaman. Harga sesuai dengan fasilitas yang di
   document.addEventListener('DOMContentLoaded', function() {
     // Periksa status login saat halaman dimuat
     window.authApi.checkLoginStatus();
-    
+
+    // Tambahkan event listener untuk tombol login
+    const loginButton = document.getElementById('login-button');
+    if (loginButton) {
+      loginButton.addEventListener('click', function() {
+        window.location.href = 'login.html';
+      });
+    }
+
     // Tambahkan event listener untuk tombol logout
     const logoutButton = document.getElementById('logout-button');
     if (logoutButton) {

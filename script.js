@@ -255,8 +255,19 @@ document.addEventListener('DOMContentLoaded', function() {
     // Fungsi untuk tombol PESAN SEKARANG
     const btnBookNow = document.getElementById('btn-book-now');
     if (btnBookNow) {
-        btnBookNow.addEventListener('click', function(e) {
+        btnBookNow.addEventListener('click', async function(e) {
             e.preventDefault();
+
+            // Cek status login terlebih dahulu
+            const session = await window.authApi.getSession();
+
+            if (!session) {
+                showNotification('Silakan login terlebih dahulu untuk melakukan pemesanan');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 1500);
+                return;
+            }
 
             const selectedRoomKey = document.getElementById('room-selector').value;
             const selectedMonths = parseInt(document.getElementById('booking-month').value);
